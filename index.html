@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>TCV Food Bank — Monthly Report</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f4f4f2;color:#111;font-size:14px;line-height:1.5}
+a{color:inherit;text-decoration:none}
+
+/* Lock */
+#lockscreen{position:fixed;inset:0;background:#f4f4f2;display:flex;align-items:center;justify-content:center;z-index:999}
+.lock-box{background:#fff;border:1px solid #e4e4e0;border-radius:16px;padding:2.25rem 2rem;width:340px}
+.lock-logo{width:40px;height:40px;background:#111;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:13px;margin-bottom:1.25rem}
+.lock-title{font-size:17px;font-weight:600;margin-bottom:2px}
+.lock-sub{font-size:13px;color:#888;margin-bottom:1.5rem}
+
+/* App shell */
+.shell{max-width:860px;margin:0 auto;padding:2rem 1.25rem}
+
+/* Header */
+.hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:2rem;padding-bottom:1.25rem;border-bottom:1px solid #e8e8e4;flex-wrap:wrap;gap:10px}
+.hd-left{display:flex;align-items:center;gap:10px}
+.hd-logo{width:34px;height:34px;background:#111;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:12px;flex-shrink:0}
+.hd-title{font-size:15px;font-weight:600;line-height:1.2}
+.hd-sub{font-size:12px;color:#999}
+.hd-links{display:flex;gap:6px}
+.ext-link{display:inline-flex;align-items:center;gap:4px;padding:5px 11px;border:1px solid #e0e0dc;border-radius:7px;font-size:12px;color:#555;background:#fff;cursor:pointer;transition:border-color .15s,background .15s}
+.ext-link:hover{background:#f8f8f6;border-color:#ccc}
+.ext-link svg{width:11px;height:11px;flex-shrink:0}
+
+/* Form */
+.form-grid{display:grid;gap:.75rem}
+.section{background:#fff;border:1px solid #e8e8e4;border-radius:14px;overflow:hidden}
+.section-hd{padding:.875rem 1.25rem;border-bottom:1px solid #f0f0ec;display:flex;align-items:center;gap:8px}
+.section-num{width:22px;height:22px;background:#111;border-radius:50%;color:#fff;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.section-label{font-size:13px;font-weight:600;color:#111}
+.section-body{padding:1.1rem 1.25rem}
+.field-grid{display:grid;gap:10px}
+.fg-2{grid-template-columns:1fr 1fr}
+.fg-3{grid-template-columns:1fr 1fr 1fr}
+.field label{display:block;font-size:11px;font-weight:500;color:#888;letter-spacing:.04em;text-transform:uppercase;margin-bottom:5px}
+input[type=text],input[type=number],input[type=date],input[type=file],select{
+  width:100%;height:36px;padding:0 10px;border:1px solid #e0e0dc;border-radius:8px;
+  font-size:13.5px;background:#fff;color:#111;outline:none;transition:border .15s}
+input:focus,select:focus{border-color:#888;box-shadow:0 0 0 3px rgba(0,0,0,.05)}
+input[type=file]{padding:0 8px;line-height:34px;cursor:pointer}
+select{cursor:pointer;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23999'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px}
+
+.month-row{display:flex;gap:6px}
+.month-row select:first-child{flex:1}
+.month-row select:last-child{width:90px}
+
+/* Buttons */
+.btn-row{display:flex;gap:8px;margin-top:.75rem}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;height:36px;padding:0 16px;border:1px solid #e0e0dc;border-radius:8px;font-size:13.5px;font-weight:500;cursor:pointer;background:#fff;color:#111;transition:background .15s,border-color .15s}
+.btn:hover{background:#f4f4f2;border-color:#ccc}
+.btn-dark{background:#111;color:#fff;border-color:#111}
+.btn-dark:hover{background:#333;border-color:#333}
+.btn-teal{background:#0F6E56;color:#fff;border-color:#0F6E56}
+.btn-teal:hover{background:#0a5240;border-color:#0a5240}
+
+/* Status */
+.status{font-size:13px;padding:8px 11px;border-radius:8px;margin-top:8px}
+.ok{background:#E1F5EE;color:#085041}
+.err{background:#FCEBEB;color:#791F1F}
+.inf{background:#E6F1FB;color:#0C447C}
+.skip-tag{font-size:11px;color:#aaa;margin-top:6px}
+
+.progress{height:2px;background:#eee;border-radius:2px;margin-top:10px;overflow:hidden;display:none}
+.progress-fill{height:100%;background:#111;border-radius:2px;transition:width .4s}
+
+/* Results */
+#results{display:none}
+.res-hd{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.75rem;flex-wrap:wrap;gap:10px;padding-top:.25rem}
+.res-title{font-size:22px;font-weight:700;letter-spacing:-.3px;line-height:1.2}
+.res-sub{font-size:13px;color:#999;margin-top:3px}
+.res-actions{display:flex;gap:6px;flex-wrap:wrap}
+
+.blk{background:#fff;border:1px solid #e8e8e4;border-radius:14px;padding:1.25rem;margin-bottom:.75rem}
+.blk-title{font-size:11px;font-weight:600;color:#999;letter-spacing:.07em;text-transform:uppercase;margin-bottom:1rem}
+
+/* Metric cards */
+.metric-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.mc{background:#f8f8f6;border-radius:10px;padding:.9rem 1rem;position:relative}
+.mc-label{font-size:11px;color:#999;font-weight:500;margin-bottom:6px;line-height:1.3}
+.mc-val{font-size:22px;font-weight:700;letter-spacing:-.5px;color:#111}
+.mc .cbtn{position:absolute;top:7px;right:7px;background:transparent;border:none;cursor:pointer;padding:3px;opacity:0;transition:opacity .15s}
+.mc:hover .cbtn{opacity:1}
+.cbtn svg{width:13px;height:13px;color:#bbb;display:block}
+.cbtn:hover svg{color:#555}
+
+/* City */
+.city-list{display:grid;gap:0}
+.city-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #f2f2f0}
+.city-row:last-child{border:none}
+.city-name{font-size:13px;color:#555;width:88px;flex-shrink:0}
+.city-bar-bg{flex:1;height:4px;background:#f0f0ec;border-radius:2px;overflow:hidden}
+.city-bar-fill{height:100%;background:#D3D1C7;border-radius:2px}
+.city-val{font-size:14px;font-weight:600;width:52px;text-align:right;flex-shrink:0}
+
+/* Race table */
+.race-table{width:100%;border-collapse:collapse;font-size:13.5px}
+.race-table th{font-size:11px;font-weight:600;color:#aaa;letter-spacing:.04em;text-transform:uppercase;padding:0 0 8px;text-align:left}
+.race-table th:not(:first-child){text-align:right}
+.race-table td{padding:7px 0;border-top:1px solid #f2f2f0;color:#333}
+.race-table td:not(:first-child){text-align:right;font-weight:500;font-variant-numeric:tabular-nums}
+.race-table td:last-child{color:#aaa;font-weight:400}
+
+/* Age */
+.age-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.ac{background:#f8f8f6;border-radius:10px;padding:.9rem 1rem;text-align:center;position:relative}
+.ac-label{font-size:11px;color:#999;font-weight:500;margin-bottom:6px}
+.ac-val{font-size:26px;font-weight:700;letter-spacing:-.5px;color:#111}
+.ac .cbtn{position:absolute;top:7px;right:7px;opacity:0;transition:opacity .15s}
+.ac:hover .cbtn{opacity:1}
+
+.footer-note{font-size:12px;color:#ccc;text-align:center;margin-top:2rem;padding-top:1rem;border-top:1px solid #f0f0ec}
+
+@media(max-width:560px){.metric-row{grid-template-columns:1fr 1fr}.fg-2,.fg-3{grid-template-columns:1fr}.hd-links{display:none}}
+@media print{.no-print{display:none!important}body{background:#fff}.shell{padding:.5rem}.blk,.section{border:1px solid #ddd!important;break-inside:avoid}.mc,.ac{background:#f8f8f8!important}}
+</style>
+</head>
+<body>
+
+<div id="lockscreen">
+  <div class="lock-box">
+    <div class="lock-logo">TCV</div>
+    <div class="lock-title">Monthly Report Generator</div>
+    <div class="lock-sub">Tri-City Volunteers Food Bank</div>
+    <div class="field" style="margin-bottom:10px">
+      <label>Password</label>
+      <input type="password" id="pwInput" placeholder="••••••••" onkeydown="if(event.key==='Enter')checkPw()"/>
+    </div>
+    <div id="pwErr" style="font-size:12px;color:#a32d2d;min-height:16px;margin-bottom:10px"></div>
+    <button class="btn btn-dark" style="width:100%" onclick="checkPw()">Continue</button>
+  </div>
+</div>
+
+<div class="shell" id="mainApp" style="display:none">
+
+  <div class="hd">
+    <div class="hd-left">
+      <div class="hd-logo">TCV</div>
+      <div>
+        <div class="hd-title">Monthly Report Generator</div>
+        <div class="hd-sub">Tri-City Volunteers Food Bank</div>
+      </div>
+    </div>
+    <div class="hd-links no-print">
+      <a class="ext-link" href="https://accfbvoice.oasisinsight.net/login/?next=%2Fagencies%2F37%2Freports%2F" target="_blank">
+        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 1H1.5a.5.5 0 00-.5.5v9a.5.5 0 00.5.5h9a.5.5 0 00.5-.5V9M7 1h4m0 0v4m0-4L5 7"/></svg>
+        Download CSV
+      </a>
+      <a class="ext-link" href="https://scorecard.clearimpact.com" target="_blank">
+        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 1H1.5a.5.5 0 00-.5.5v9a.5.5 0 00.5.5h9a.5.5 0 00.5-.5V9M7 1h4m0 0v4m0-4L5 7"/></svg>
+        Enter in Scorecard
+      </a>
+    </div>
+  </div>
+
+  <div class="form-grid" id="form-section">
+
+    <div class="section no-print">
+      <div class="section-hd"><div class="section-num">1</div><div class="section-label">Upload CSV file</div></div>
+      <div class="section-body">
+        <div class="field-grid" style="margin-bottom:10px">
+          <div class="field"><label>Assistance report CSV</label><input type="file" id="csvFile" accept=".csv"/></div>
+        </div>
+        <div class="field-grid fg-2">
+          <div class="field">
+            <label>Report month</label>
+            <div class="month-row">
+              <select id="monthSel"></select>
+              <select id="yearSel"></select>
+            </div>
+          </div>
+          <div style="display:flex;align-items:flex-end;padding-bottom:2px">
+            <div id="skipInfo" class="skip-tag"></div>
+          </div>
+        </div>
+        <div id="fileStatus"></div>
+      </div>
+    </div>
+
+    <div class="section no-print">
+      <div class="section-hd"><div class="section-num">2</div><div class="section-label">Date range</div></div>
+      <div class="section-body">
+        <div class="field-grid fg-2">
+          <div class="field"><label>Start date</label><input type="date" id="startDate"/></div>
+          <div class="field"><label>End date</label><input type="date" id="endDate"/></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section no-print">
+      <div class="section-hd"><div class="section-num">3</div><div class="section-label">Food distribution details</div></div>
+      <div class="section-body">
+        <div class="field-grid fg-3">
+          <div class="field"><label>Avg weight per visit (lbs)</label><input type="number" id="avgWeight" step="0.01" placeholder="e.g. 33"/></div>
+          <div class="field"><label>Mobile pounds (Jim's sheet)</label><input type="number" id="mobilePounds" step="0.01" placeholder="e.g. 40,872"/></div>
+          <div class="field"><label>Prepared meals (homeless)</label><input type="number" id="preparedMeals" placeholder="e.g. 197" min="0"/></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="btn-row no-print">
+      <button class="btn btn-dark" onclick="generate()">Generate report</button>
+      <button class="btn" onclick="resetForm()">Reset</button>
+    </div>
+    <div id="genStatus"></div>
+    <div class="progress no-print" id="progressBar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+  </div>
+
+  <div id="results">
+    <div class="res-hd">
+      <div>
+        <div class="res-title" id="reportTitle">Monthly Report</div>
+        <div class="res-sub" id="reportSubtitle"></div>
+      </div>
+      <div class="res-actions no-print">
+        <button class="btn" onclick="window.print()">Print / PDF</button>
+        <button class="btn" onclick="resetForm()">New report</button>
+        <a class="btn btn-teal" href="https://scorecard.clearimpact.com" target="_blank">Enter in Scorecard ↗</a>
+      </div>
+    </div>
+
+    <div class="blk">
+      <div class="blk-title">Summary</div>
+      <div class="metric-row">
+        <div class="mc"><div class="mc-label">Unduplicated individuals</div><div class="mc-val" id="r-total">—</div><button class="cbtn" onclick="copyVal('r-total',this)"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="4" width="8" height="8" rx="1"/><path d="M2 10V2h8"/></svg></button></div>
+        <div class="mc"><div class="mc-label">Pounds of food distributed</div><div class="mc-val" id="r-pounds">—</div><button class="cbtn" onclick="copyVal('r-pounds',this)"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="4" width="8" height="8" rx="1"/><path d="M2 10V2h8"/></svg></button></div>
+        <div class="mc"><div class="mc-label">Prepared meals served</div><div class="mc-val" id="r-meals">—</div><button class="cbtn" onclick="copyVal('r-meals',this)"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="4" width="8" height="8" rx="1"/><path d="M2 10V2h8"/></svg></button></div>
+        <div class="mc"><div class="mc-label">Meal equivalents (food pantry)</div><div class="mc-val" id="r-mealequiv">—</div><button class="cbtn" onclick="copyVal('r-mealequiv',this)"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="4" width="8" height="8" rx="1"/><path d="M2 10V2h8"/></svg></button></div>
+      </div>
+    </div>
+
+    <div class="blk">
+      <div class="blk-title">Individuals by city</div>
+      <div class="city-list" id="city-breakdown"></div>
+    </div>
+
+    <div class="blk">
+      <div class="blk-title">Race / ethnicity</div>
+      <table class="race-table">
+        <thead><tr><th>Category</th><th>Individuals</th><th>% of total</th></tr></thead>
+        <tbody id="race-body"></tbody>
+      </table>
+    </div>
+
+    <div class="blk">
+      <div class="blk-title">Age distribution</div>
+      <div class="age-row">
+        <div class="ac"><div class="ac-label">Children (0–17)</div><div class="ac-val" id="r-children">—</div><button class="cbtn" onclick="copyVal('r-children',this)"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="4" width="8" height="8" rx="1"/><path d="M2 10V2h8"/></svg></button></div>
+        <div class="ac"><div class="ac-label">Adults (18–59)</div><div class="ac-val" id="r-adults">—</div><button class="cbtn" onclick="copyVal('r-adults',this)"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="4" width="8" height="8" rx="1"/><path d="M2 10V2h8"/></svg></button></div>
+        <div class="ac"><div class="ac-label">Seniors (60+)</div><div class="ac-val" id="r-seniors">—</div><button class="cbtn" onclick="copyVal('r-seniors',this)"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="4" width="8" height="8" rx="1"/><path d="M2 10V2h8"/></svg></button></div>
+      </div>
+    </div>
+
+    <div class="footer-note">Questions? Contact <a href="mailto:zach.wei@tcvfoodbank.org" style="color:#bbb">Zach Wei</a> · 520-246-6087</div>
+  </div>
+</div>
+
+<script>
+function checkPw(){
+  if(document.getElementById('pwInput').value==='TCV123'){
+    document.getElementById('lockscreen').style.display='none';
+    document.getElementById('mainApp').style.display='block';
+  } else {
+    document.getElementById('pwErr').textContent='Incorrect password.';
+    document.getElementById('pwInput').value='';
+    document.getElementById('pwInput').focus();
+  }
+}
+
+function copyVal(id,btn){
+  const raw=document.getElementById(id).textContent.replace(/,/g,'');
+  navigator.clipboard.writeText(raw).then(()=>{
+    const svg=btn.querySelector('svg');
+    svg.style.color='#0F6E56';
+    setTimeout(()=>svg.style.color='',1200);
+  });
+}
+
+const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const now=new Date(),curMonth=now.getMonth(),curYear=now.getFullYear();
+const prevMonth=curMonth===0?11:curMonth-1,prevYear=curMonth===0?curYear-1:curYear;
+const monthSel=document.getElementById('monthSel');
+MONTHS.forEach((m,i)=>{const o=document.createElement('option');o.value=m;o.textContent=m;if(i===prevMonth)o.selected=true;monthSel.appendChild(o);});
+const yearSel=document.getElementById('yearSel');
+for(let y=curYear;y>=2020;y--){const o=document.createElement('option');o.value=y;o.textContent=y;if(y===prevYear)o.selected=true;yearSel.appendChild(o);}
+
+function autoFillDates(){
+  const m=MONTHS.indexOf(monthSel.value),y=parseInt(yearSel.value);
+  if(m<0||isNaN(y))return;
+  const pad=n=>String(n).padStart(2,'0');
+  document.getElementById('startDate').value=`${y}-${pad(m+1)}-01`;
+  document.getElementById('endDate').value=`${y}-${pad(m+1)}-${pad(new Date(y,m+1,0).getDate())}`;
+}
+monthSel.addEventListener('change',autoFillDates);
+yearSel.addEventListener('change',autoFillDates);
+autoFillDates();
+
+let parsedData=null;
+
+document.getElementById('csvFile').addEventListener('change',function(e){
+  const file=e.target.files[0];if(!file)return;
+  const statusEl=document.getElementById('fileStatus');
+  statusEl.innerHTML='<div class="status inf">Reading file...</div>';
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    const allLines=ev.target.result.split('\n');
+    const headerIdx=allLines.findIndex(l=>l.trimStart().startsWith('Case #\t')||l.trimStart().startsWith('Case #,'));
+    if(headerIdx<0){statusEl.innerHTML='<div class="status err">Could not detect header row.</div>';return;}
+    const skip=headerIdx>0?headerIdx-1:headerIdx;
+    document.getElementById('skipInfo').textContent=`Auto-detected · ${skip} rows skipped`;
+    Papa.parse(allLines.slice(skip).join('\n'),{header:true,skipEmptyLines:true,
+      complete(res){
+        parsedData=res.data;
+        statusEl.innerHTML=`<div class="status ok">${parsedData.length.toLocaleString()} rows · ${res.meta.fields.length} columns loaded</div>`;
+      },
+      error(err){statusEl.innerHTML=`<div class="status err">Parse error: ${err.message}</div>`;}
+    });
+  };
+  reader.readAsText(file);
+});
+
+function isYes(v){return v!=null&&String(v).trim().toUpperCase()==='YES';}
+function safeInt(v){const n=parseInt(String(v??'').replace(/[^\d.-]/g,''));return isNaN(n)?0:n;}
+
+function generate(){
+  const statusEl=document.getElementById('genStatus');
+  const progressFill=document.getElementById('progressFill');
+  const progressBar=document.getElementById('progressBar');
+  if(!parsedData){statusEl.innerHTML='<div class="status err">Please upload a CSV file first.</div>';return;}
+  const startStr=document.getElementById('startDate').value,endStr=document.getElementById('endDate').value;
+  if(!startStr||!endStr){statusEl.innerHTML='<div class="status err">Please enter both dates.</div>';return;}
+  const avgWeight=parseFloat(document.getElementById('avgWeight').value)||0;
+  const mobilePounds=parseFloat(document.getElementById('mobilePounds').value)||0;
+  const preparedMeals=parseInt(document.getElementById('preparedMeals').value)||0;
+  const monthLabel=`${monthSel.value} ${yearSel.value}`;
+  progressBar.style.display='block';progressFill.style.width='10%';
+  statusEl.innerHTML='<div class="status inf">Processing...</div>';
+
+  setTimeout(()=>{
+    try{
+      const rawKeys=Object.keys(parsedData[0]||{});
+      const getCol=p=>{const pl=p.toLowerCase();return rawKeys.find(k=>k.trim().toLowerCase()===pl)||rawKeys.find(k=>k.trim().toLowerCase().includes(pl))||null;};
+      const getColLast=p=>{const pl=p.toLowerCase();const e=rawKeys.filter(k=>k.trim().toLowerCase()===pl);if(e.length)return e[e.length-1];const f=rawKeys.filter(k=>k.trim().toLowerCase().includes(pl));return f.length?f[f.length-1]:null;};
+
+      const COL_HH=getColLast('household size'),COL_DATE=getColLast('assistance date'),
+            COL_CASE=getCol('case #'),COL_AGENT=getColLast('agent name'),
+            COL_CITY=getCol('city'),COL_ZIP=getCol('zip code')||getCol('zip');
+
+      if(!COL_DATE||!COL_CASE||!COL_HH){statusEl.innerHTML=`<div class="status err">Missing columns — HH:"${COL_HH}" DATE:"${COL_DATE}" CASE:"${COL_CASE}"</div>`;progressBar.style.display='none';return;}
+
+      progressFill.style.width='20%';
+      const start=new Date(startStr+'T00:00:00'),end=new Date(endStr+'T23:59:59');
+      const filtered=parsedData.filter(r=>{const d=new Date(r[COL_DATE]);return !isNaN(d)&&d>=start&&d<=end;});
+
+      progressFill.style.width='35%';
+      const seen=new Map();
+      filtered.forEach(r=>{const id=String(r[COL_CASE]||'').trim().toUpperCase();if(id&&id!=='NAN'&&!seen.has(id))seen.set(id,r);});
+      const df=[...seen.values()];
+      const total=df.reduce((s,r)=>s+safeInt(r[COL_HH]),0);
+
+      const josephCount=filtered.filter(r=>String(r[COL_AGENT]||'').toLowerCase().includes('joseph st')).length;
+      const pounds=josephCount*avgWeight+mobilePounds,mealEquiv=pounds/1.2;
+
+      progressFill.style.width='50%';
+      const fzips=['94536','94537','94538','94539','94555'],nzips=['94560'],uzips=['94587'];
+      const czip=v=>{const m=String(v||'').match(/(\d{5})/);return m?m[1]:null;};
+      const ccity=v=>{const s=String(v||'').trim();return(s===''||s==='nan'||s==='None')?null:s[0].toUpperCase()+s.slice(1).toLowerCase();};
+      let fre=0,newk=0,uni=0,unk=0,otherCity=0;
+      df.forEach(r=>{
+        const city=ccity(r[COL_CITY]),zip=czip(r[COL_ZIP]),hs=safeInt(r[COL_HH]);
+        const zk=zip&&zip!='0',ck=city&&city.toLowerCase()!='unknown';
+        if((zk&&fzips.includes(zip))||(ck&&city.toLowerCase().startsWith('fremo')&&!zk)){fre+=hs;return;}
+        if((zk&&nzips.includes(zip))||(ck&&city.toLowerCase().startsWith('newa')&&!zk)){newk+=hs;return;}
+        if((zk&&uzips.includes(zip))||(ck&&city.toLowerCase().startsWith('unio')&&!zk)){uni+=hs;return;}
+        if(!zk&&!ck){unk+=hs;return;}
+        otherCity+=hs;
+      });
+
+      progressFill.style.width='65%';
+      const C={hispanic:getCol('hispanic, latino or spanish : race/ethnicity'),black:getColLast('black or african american : race/ethnicity'),white:getColLast('white/caucasian : race/ethnicity'),native:getColLast('native american : race/ethnicity'),nhpi:getColLast('native hawaiian or pacific islander : race/ethnicity'),mena:getCol('middle eastern or north african : race/ethnicity'),chinese:getCol('chinese : race/ethnicity'),japanese:getCol('japanese : race/ethnicity'),korean:getCol('korean : race/ethnicity'),vietnamese:getCol('vietnamese : race/ethnicity'),filipino:getCol('filipino : race/ethnicity'),seAsian:getCol('south east asian : race/ethnicity'),indian:getCol('indian : race/ethnicity'),asian:getColLast('asian : race/ethnicity'),multiple:getColLast('multiple: race/ethnicity')};
+      const midx=rawKeys.findIndex(k=>k.trim().toLowerCase().includes('multiple: race/ethnicity'));
+      const C_other=midx>=0?rawKeys.slice(midx+1).find(k=>k.trim().startsWith('Other'))||null:null;
+      const ASIAN=[C.chinese,C.japanese,C.korean,C.vietnamese,C.filipino,C.seAsian,C.indian,C.asian,C.nhpi];
+      let tAsian=0,tBlack=0,tLatinx=0,tNative=0,tWhite=0,tMixed=0,tOther=0,tUnknown=0;
+      df.forEach(r=>{
+        const size=safeInt(r[COL_HH]);const majors=new Set();
+        if(ASIAN.some(col=>col&&isYes(r[col])))majors.add('Asian');
+        if(C.black&&isYes(r[C.black]))majors.add('Black');
+        if(C.hispanic&&isYes(r[C.hispanic]))majors.add('Latinx');
+        if(C.native&&isYes(r[C.native]))majors.add('Native');
+        if(C.white&&isYes(r[C.white]))majors.add('White');
+        if((C.mena&&isYes(r[C.mena]))||(C_other&&isYes(r[C_other])))majors.add('Other');
+        const multi=C.multiple&&isYes(r[C.multiple]);
+        if(majors.size===0)tUnknown+=size;
+        else if(multi||majors.size>=2)tMixed+=size;
+        else{const o=[...majors][0];if(o==='Asian')tAsian+=size;else if(o==='Black')tBlack+=size;else if(o==='Latinx')tLatinx+=size;else if(o==='Native')tNative+=size;else if(o==='White')tWhite+=size;else if(o==='Other')tOther+=size;}
+      });
+
+      progressFill.style.width='82%';
+      const CA={infant:getCol('infant (less than 1)'),child:getCol('child (1-5)'),school:getCol('school age (6-17)'),adults:rawKeys.find(k=>k.trim().toLowerCase()==='adults (18-59)')||null,seniors:rawKeys.find(k=>k.trim().toLowerCase()==='seniors (60+)')||null};
+      let totalChildren=0,totalAdults=0,totalSeniors=0;
+      df.forEach(r=>{
+        const hs=safeInt(r[COL_HH]);
+        let c=(CA.infant?safeInt(r[CA.infant]):0)+(CA.child?safeInt(r[CA.child]):0)+(CA.school?safeInt(r[CA.school]):0);
+        let a=CA.adults?safeInt(r[CA.adults]):0,s=CA.seniors?safeInt(r[CA.seniors]):0;
+        const delta=hs-(c+a+s);
+        if(delta>0){a+=delta;}
+        else if(delta<0){let need=-delta;const order=[[0,c],[1,a],[2,s]].sort((x,y)=>y[1]-x[1]);for(const[idx]of order){const cur=idx===0?c:idx===1?a:s;const take=Math.min(cur,need);if(idx===0)c-=take;else if(idx===1)a-=take;else s-=take;need-=take;if(!need)break;}}
+        totalChildren+=c;totalAdults+=a;totalSeniors+=s;
+      });
+
+      progressFill.style.width='100%';
+
+      document.getElementById('reportTitle').textContent=`${monthLabel} Report`;
+      document.getElementById('reportSubtitle').textContent=`${startStr} – ${endStr} · ${df.length.toLocaleString()} unduplicated households`;
+      document.getElementById('r-total').textContent=total.toLocaleString();
+      document.getElementById('r-pounds').textContent=Math.round(pounds).toLocaleString();
+      document.getElementById('r-meals').textContent=preparedMeals.toLocaleString();
+      document.getElementById('r-mealequiv').textContent=Math.round(mealEquiv).toLocaleString();
+
+      const cityData=[{label:'Fremont',val:fre},{label:'Newark',val:newk},{label:'Union City',val:uni},{label:'Other cities',val:otherCity},{label:'Unknown',val:unk}];
+      const maxC=Math.max(...cityData.map(c=>c.val),1);
+      document.getElementById('city-breakdown').innerHTML=cityData.map(c=>`
+        <div class="city-row">
+          <span class="city-name">${c.label}</span>
+          <div class="city-bar-bg"><div class="city-bar-fill" style="width:${Math.round(c.val/maxC*100)}%"></div></div>
+          <span class="city-val">${c.val.toLocaleString()}</span>
+        </div>`).join('');
+
+      document.getElementById('race-body').innerHTML=
+        [{l:'Asian or Pacific Islander',v:tAsian},{l:'Black or African American',v:tBlack},{l:'Hispanic, Latino or Spanish',v:tLatinx},{l:'Native American',v:tNative},{l:'White or Caucasian',v:tWhite},{l:'Multiple / Mixed race',v:tMixed},{l:'Other',v:tOther},{l:'Unknown / Not disclosed',v:tUnknown}]
+        .map(r=>`<tr><td>${r.l}</td><td>${r.v.toLocaleString()}</td><td>${total>0?(r.v/total*100).toFixed(1):0}%</td></tr>`).join('');
+
+      document.getElementById('r-children').textContent=totalChildren.toLocaleString();
+      document.getElementById('r-adults').textContent=totalAdults.toLocaleString();
+      document.getElementById('r-seniors').textContent=totalSeniors.toLocaleString();
+
+      document.getElementById('results').style.display='block';
+      document.getElementById('results').scrollIntoView({behavior:'smooth'});
+      statusEl.innerHTML='<div class="status ok">Report generated successfully.</div>';
+      setTimeout(()=>progressBar.style.display='none',600);
+
+    }catch(e){
+      statusEl.innerHTML=`<div class="status err">Error: ${e.message}</div>`;
+      document.getElementById('progressBar').style.display='none';
+    }
+  },50);
+}
+
+function resetForm(){
+  document.getElementById('results').style.display='none';
+  document.getElementById('genStatus').innerHTML='';
+  document.getElementById('fileStatus').innerHTML='';
+  document.getElementById('skipInfo').textContent='';
+  document.getElementById('progressBar').style.display='none';
+  parsedData=null;
+  document.getElementById('csvFile').value='';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+</script>
+</body>
+</html>
